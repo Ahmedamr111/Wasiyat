@@ -140,9 +140,22 @@ class FirebaseAuthService implements AuthService {
     final uid = _auth.currentUser?.uid;
     if (uid == null) throw Exception('Not signed in');
 
+    final now = DateTime.now();
+    final newDeadline = now.add(const Duration(days: 30));
+
+    // Update user document
     await _db.collection('users').doc(uid).update({
-      'lastCheckIn': FieldValue.serverTimestamp(),
+      'lastCheckIn': now.toIso8601String(),
+      'isDeceased': false,
     });
+
+    // Reset trigger document
+    await _db.collection('users').doc(uid).collection('settings').doc('trigger').set({
+      'status': 'watching',
+      'lastCheckInSent': now.toIso8601String(),
+      'checkInDeadline': newDeadline.toIso8601String(),
+      'cancelledAt': now.toIso8601String(),
+    }, SetOptions(merge: true));
   }
 
   // ── Private Helpers ──────────────────────────────────────────────────────

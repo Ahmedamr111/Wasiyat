@@ -15,7 +15,11 @@ import 'screens/messages/message_composer_screen.dart';
 import 'screens/checkin/checkin_screen.dart';
 import 'providers/vault_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/messages_provider.dart';
+import 'providers/security_provider.dart';
 import 'services/notification_service.dart';
+import 'services/local_auth_service.dart';
+import 'screens/messages/message_detail_screen.dart';
 
 Future<void> main() async {
   // Preserve the native splash screen until app is fully ready
@@ -30,6 +34,10 @@ Future<void> main() async {
   // Initialize Notification Service (FCM & local reminders)
   await NotificationService().initialize();
 
+  // Initialize LocalAuthService
+  final localAuth = LocalAuthService();
+  await localAuth.init();
+
   // Set system UI overlay style for warm aesthetic
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -43,7 +51,14 @@ Future<void> main() async {
   // Remove the splash screen — Flutter UI is now ready
   FlutterNativeSplash.remove();
 
-  runApp(const ProviderScope(child: WasiyatiApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        localAuthServiceProvider.overrideWithValue(localAuth),
+      ],
+      child: const WasiyatiApp(),
+    ),
+  );
 }
 
 class WasiyatiApp extends ConsumerWidget {
@@ -162,7 +177,35 @@ class _AppNavigatorState extends ConsumerState<AppNavigator> {
       case AppScreen.home:
         return HomeShell(
           onNewMessage: () => _navigate(AppScreen.composer),
-          onViewMessage: (id) => _navigate(AppScreen.composer),
+          onViewMessage: (id) {
+            final messages = ref.read(messagesProvider).valueOrNull ?? [];
+            final msg = messages.where((m) => m.id == id).firstOrNull;
+            if (msg != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MessageDetailScreen(
+                    message: msg,
+                    onBack: () => Navigator.pop(context),
+                    onEdit: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MessageComposerScreen(
+                            existingMessage: msg,
+                            onBack: () => Navigator.pop(context),
+                            onSaved: () => Navigator.pop(context),
+                          ),
+                        ),
+                      );
+                    },
+                    onDeleted: () {},
+                  ),
+                ),
+              );
+            }
+          },
           onCheckIn: () => _navigate(AppScreen.checkin),
           onUpgrade: () {
             // Show premium bottom sheet

@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../config/theme.dart';
 import '../security/pin_lock_screen.dart';
+import '../../providers/security_provider.dart';
 
 /// Security & Privacy settings screen
-class SecurityPrivacyScreen extends StatefulWidget {
+class SecurityPrivacyScreen extends ConsumerStatefulWidget {
   final VoidCallback onBack;
 
   const SecurityPrivacyScreen({super.key, required this.onBack});
 
   @override
-  State<SecurityPrivacyScreen> createState() => _SecurityPrivacyScreenState();
+  ConsumerState<SecurityPrivacyScreen> createState() => _SecurityPrivacyScreenState();
 }
 
-class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
-  bool _pinEnabled = true;
-  bool _biometricEnabled = false;
+class _SecurityPrivacyScreenState extends ConsumerState<SecurityPrivacyScreen> {
   bool _encryptionEnabled = true;
   bool _screenshotBlocked = true;
   String _autoLockDuration = '5 minutes';
@@ -27,19 +27,68 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
     '1 hour',
   ];
 
+  void _togglePIN(bool enable) {
+    if (enable) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PinLockScreen(
+            title: 'Create App PIN',
+            isSetup: true,
+            onSuccess: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('✓ App PIN Lock enabled successfully'),
+                  backgroundColor: WasiyatiColors.success,
+                ),
+              );
+            },
+            onCancel: () => Navigator.pop(context),
+          ),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PinLockScreen(
+            title: 'Verify App PIN',
+            subtitle: 'Enter PIN to disable lock',
+            isSetup: false,
+            onSuccess: () {
+              Navigator.pop(context);
+              ref.read(securityProvider.notifier).disablePin().then((_) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('✓ App PIN Lock disabled successfully'),
+                      backgroundColor: WasiyatiColors.success,
+                    ),
+                  );
+                }
+              });
+            },
+            onCancel: () => Navigator.pop(context),
+          ),
+        ),
+      );
+    }
+  }
+
   void _changePIN() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PinLockScreen(
-          title: 'Change PIN',
+        builder: (context) => PinLockScreen(
+          title: 'Verify App PIN',
           subtitle: 'Enter your current PIN first',
           isSetup: false,
           onSuccess: () {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (_) => PinLockScreen(
+                builder: (context) => PinLockScreen(
                   title: 'Create New PIN',
                   isSetup: true,
                   onSuccess: () {
@@ -64,6 +113,10 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final securityState = ref.watch(securityProvider);
+    final pinEnabled = securityState.isPinEnabled;
+    final biometricEnabled = securityState.isBiometricEnabled;
+
     return Scaffold(
       backgroundColor: WasiyatiColors.background,
       appBar: AppBar(
@@ -130,21 +183,42 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
             title: 'App PIN Lock',
             subtitle: 'Require PIN to open the app',
             trailing: Switch(
-              value: _pinEnabled,
-              onChanged: (v) => setState(() => _pinEnabled = v),
+              value: pinEnabled,
+              onChanged: _togglePIN,
               activeThumbColor: Colors.white,
               activeTrackColor: WasiyatiColors.deepRose,
             ),
           ),
           const SizedBox(height: 8),
-          if (_pinEnabled) ...[
+          if (pinEnabled) ...[
             _SecurityCard(
               icon: '👆',
               title: 'Biometric Unlock',
               subtitle: 'Use fingerprint or Face ID',
               trailing: Switch(
-                value: _biometricEnabled,
-                onChanged: (v) => setState(() => _biometricEnabled = v),
+                value: biometricEnabled,
+                onChanged: (v) async {
+                  if (v) {
+                    final available = await ref.read(localAuthServiceProvider).isBiometricsAvailable();
+                    if (!available) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Biometrics not available on this device'),
+                            backgroundColor: WasiyatiColors.error,
+                          ),
+                        );
+                      }
+                      return;
+                    }
+                    final success = await ref.read(localAuthServiceProvider).authenticateBiometric('Confirm biometrics setup');
+                    if (success) {
+                      await ref.read(securityProvider.notifier).setBiometricEnabled(true);
+                    }
+                  } else {
+                    await ref.read(securityProvider.notifier).setBiometricEnabled(false);
+                  }
+                },
                 activeThumbColor: Colors.white,
                 activeTrackColor: WasiyatiColors.deepRose,
               ),

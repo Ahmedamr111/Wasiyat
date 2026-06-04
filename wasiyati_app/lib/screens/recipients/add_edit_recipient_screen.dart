@@ -171,12 +171,34 @@ class _AddEditRecipientScreenState extends ConsumerState<AddEditRecipientScreen>
                           TextButton(
                             onPressed: () async {
                               Navigator.pop(ctx);
-                              if (widget.recipient != null) {
-                                await ref
-                                    .read(recipientsProvider.notifier)
-                                    .deleteRecipient(widget.recipient!.id);
+                              try {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Removing recipient...')),
+                                );
+                                if (widget.recipient != null) {
+                                  await ref
+                                      .read(recipientsProvider.notifier)
+                                      .deleteRecipient(widget.recipient!.id);
+                                }
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('✓ Recipient removed successfully'),
+                                      backgroundColor: WasiyatiColors.success,
+                                    ),
+                                  );
+                                  Navigator.pop(context);
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error: $e'),
+                                      backgroundColor: WasiyatiColors.error,
+                                    ),
+                                  );
+                                }
                               }
-                              widget.onBack();
                             },
                             child: const Text(
                               'Remove',

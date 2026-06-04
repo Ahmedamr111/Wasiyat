@@ -128,6 +128,7 @@ class _MessageDetailScreenState extends ConsumerState<MessageDetailScreen>
                       backgroundColor: WasiyatiColors.success,
                     ),
                   );
+                  Navigator.pop(context);
                   widget.onDeleted();
                 }
               } catch (e) {

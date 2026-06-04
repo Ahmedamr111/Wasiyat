@@ -8,6 +8,8 @@ import '../messages/messages_list_screen.dart';
 import '../recipients/recipients_list_screen.dart';
 import '../vault/vault_home_screen.dart';
 import '../settings/profile_screen.dart';
+import '../../providers/security_provider.dart';
+import '../security/pin_lock_screen.dart';
 
 /// Home shell — bottom navigation with 5 tabs
 class HomeShell extends ConsumerWidget {
@@ -89,8 +91,38 @@ class HomeShell extends ConsumerWidget {
                   icon: '🏛️',
                   label: s.get('vault'),
                   isActive: currentIndex == 3,
-                  onTap: () =>
-                      ref.read(bottomNavIndexProvider.notifier).state = 3,
+                  onTap: () async {
+                    final securityState = ref.read(securityProvider);
+                    if (securityState.isPinEnabled && !securityState.isVaultUnlocked) {
+                      var authenticated = false;
+                      if (securityState.isBiometricEnabled) {
+                        authenticated = await ref.read(securityProvider.notifier).authenticateBiometric('Unlock Vault');
+                      }
+                      if (authenticated) {
+                        ref.read(bottomNavIndexProvider.notifier).state = 3;
+                      } else {
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PinLockScreen(
+                                title: 'Unlock Vault',
+                                subtitle: 'Enter PIN to access your vault',
+                                isSetup: false,
+                                onSuccess: () {
+                                  Navigator.pop(context);
+                                  ref.read(bottomNavIndexProvider.notifier).state = 3;
+                                },
+                                onCancel: () => Navigator.pop(context),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    } else {
+                      ref.read(bottomNavIndexProvider.notifier).state = 3;
+                    }
+                  },
                 ),
                 _NavItem(
                   icon: '👤',

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../config/theme.dart';
+import '../../providers/security_provider.dart';
 
 /// PIN lock / unlock dialog — shown when a message is PIN-protected
-class PinLockScreen extends StatefulWidget {
+class PinLockScreen extends ConsumerStatefulWidget {
   final String title;
   final String subtitle;
   final bool isSetup; // true = create PIN, false = verify PIN
@@ -19,10 +21,10 @@ class PinLockScreen extends StatefulWidget {
   });
 
   @override
-  State<PinLockScreen> createState() => _PinLockScreenState();
+  ConsumerState<PinLockScreen> createState() => _PinLockScreenState();
 }
 
-class _PinLockScreenState extends State<PinLockScreen>
+class _PinLockScreenState extends ConsumerState<PinLockScreen>
     with SingleTickerProviderStateMixin {
   final List<String> _digits = [];
   String? _firstPin; // for setup/confirm flow
@@ -30,9 +32,6 @@ class _PinLockScreenState extends State<PinLockScreen>
   bool _hasError = false;
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
-
-  // Mock correct PIN for demo
-  static const _correctPin = '1234';
 
   @override
   void initState() {
@@ -44,6 +43,24 @@ class _PinLockScreenState extends State<PinLockScreen>
     _shakeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _shakeController, curve: Curves.elasticOut),
     );
+
+    if (!widget.isSetup) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _triggerBiometric();
+      });
+    }
+  }
+
+  Future<void> _triggerBiometric() async {
+    final state = ref.read(securityProvider);
+    if (state.isBiometricEnabled) {
+      final success = await ref
+          .read(securityProvider.notifier)
+          .authenticateBiometric('Unlock Wasiyati');
+      if (success) {
+        widget.onSuccess();
+      }
+    }
   }
 
   @override
@@ -84,14 +101,18 @@ class _PinLockScreenState extends State<PinLockScreen>
         });
       } else {
         if (entered == _firstPin) {
-          widget.onSuccess();
+          ref.read(securityProvider.notifier).enablePin(entered).then((_) {
+            widget.onSuccess();
+          });
         } else {
           _fail();
         }
       }
     } else {
-      // Verify mode — check against mock PIN
-      if (entered == _correctPin) {
+      // Verify mode — check against real stored PIN
+      final correct = ref.read(securityProvider.notifier).verifyPin(entered);
+      if (correct) {
+        ref.read(securityProvider.notifier).unlockVault();
         widget.onSuccess();
       } else {
         _fail();
@@ -216,13 +237,15 @@ class _PinLockScreenState extends State<PinLockScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      // Biometric placeholder
+                      // Biometric trigger
                       _NumKey(
-                        onTap: () {},
-                        child: const Icon(
+                        onTap: _triggerBiometric,
+                        child: Icon(
                           Icons.fingerprint_rounded,
                           size: 26,
-                          color: WasiyatiColors.muted,
+                          color: ref.watch(securityProvider).isBiometricEnabled
+                              ? WasiyatiColors.deepRose
+                              : WasiyatiColors.muted,
                         ),
                       ),
                       _NumKey(label: '0', onTap: () => _onDigit('0')),

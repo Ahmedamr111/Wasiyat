@@ -7,6 +7,8 @@ import '../../widgets/common/wasiyati_button.dart';
 import '../../widgets/common/wasiyati_input.dart';
 import 'message_detail_screen.dart';
 import 'message_composer_screen.dart';
+import '../../providers/security_provider.dart';
+import '../security/pin_lock_screen.dart';
 
 /// Messages list screen — all messages with filter tabs
 class MessagesListScreen extends ConsumerStatefulWidget {
@@ -34,8 +36,46 @@ class _MessagesListScreenState extends ConsumerState<MessagesListScreen> {
     super.dispose();
   }
 
-  void _openMessage(BuildContext context, MessageModel msg) {
-    // If PIN-locked, show PIN screen first (future: wire PinLockScreen here)
+  void _openMessage(BuildContext context, MessageModel msg) async {
+    final securityState = ref.read(securityProvider);
+
+    if (msg.isPinLocked) {
+      var authenticated = false;
+      if (securityState.isPinEnabled && securityState.isBiometricEnabled) {
+        authenticated = await ref
+            .read(securityProvider.notifier)
+            .authenticateBiometric('Unlock Message');
+      }
+
+      if (authenticated) {
+        if (context.mounted) {
+          _navigateToDetail(context, msg);
+        }
+      } else {
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PinLockScreen(
+                title: 'Unlock Message',
+                subtitle: 'Enter PIN to unlock "${msg.title}"',
+                isSetup: false,
+                onSuccess: () {
+                  Navigator.pop(context);
+                  _navigateToDetail(context, msg);
+                },
+                onCancel: () => Navigator.pop(context),
+              ),
+            ),
+          );
+        }
+      }
+    } else {
+      _navigateToDetail(context, msg);
+    }
+  }
+
+  void _navigateToDetail(BuildContext context, MessageModel msg) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -55,7 +95,7 @@ class _MessagesListScreenState extends ConsumerState<MessagesListScreen> {
               ),
             );
           },
-          onDeleted: () => Navigator.pop(context),
+          onDeleted: () {},
         ),
       ),
     );

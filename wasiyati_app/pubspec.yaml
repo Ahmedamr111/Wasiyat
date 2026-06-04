@@ -1,0 +1,81 @@
+name: wasiyati
+description: "Wasiyati — Leave your words behind. Forever."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.8.1
+
+  # UI & Design
+  google_fonts: ^6.2.1
+
+  # Utilities
+  intl: ^0.20.2
+  uuid: ^4.5.1
+  path_provider: ^2.1.5
+  url_launcher: ^6.3.1
+
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.5.4
+  cloud_firestore: ^5.6.9
+  firebase_storage: ^12.4.5
+  google_sign_in: ^6.3.0
+  firebase_messaging: ^15.2.10
+
+  # Notifications & Timezone
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+
+  # Splash screen (needed at runtime for FlutterNativeSplash.preserve/remove)
+  flutter_native_splash: ^2.4.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+
+# ── Splash Screen Configuration ────────────────────────────────────────────────
+flutter_native_splash:
+  color: "#FAF6F1"
+  image: assets/images/splash_logo.png
+  color_dark: "#FAF6F1"
+  image_dark: assets/images/splash_logo.png
+  android_12:
+    image: assets/images/splash_logo.png
+    color: "#FAF6F1"
+    icon_background_color: "#FAF6F1"
+  web: false
+  fullscreen: false
+
+# ── Launcher Icons Configuration ───────────────────────────────────────────────
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icons/app_icon.png"
+  adaptive_icon_background: "#FAF6F1"
+  adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"
+  min_sdk_android: 21

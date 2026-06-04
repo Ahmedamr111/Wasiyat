@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "284120961434",
+    "project_id": "wasiyati-36960",
+    "storage_bucket": "wasiyati-36960.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:284120961434:android:0344c7d395e23a8c4bea23",
+        "android_client_info": {
+          "package_name": "com.wasiyati.wasiyati"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "284120961434-49opbgr7bgse2v4576g0bhp5u792htmt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeWwWkCbY4X405v6pQdergDC7Et0TmgwI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "284120961434-49opbgr7bgse2v4576g0bhp5u792htmt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
